@@ -20,28 +20,34 @@
 <body>
 
 <div id="game-container">
+    <select id="lang-select" onchange="changeLanguage()" style="width: auto; margin-bottom: 20px;">
+        <option value="en">English</option>
+        <option value="th">ภาษาไทย</option>
+    </select>
+
     <div id="menu">
-        <h1>Math Game Pro</h1>
-        <button onclick="setup('Time Attack')">Time Attack</button>
-        <button onclick="setup('Endless')">Endless</button>
+        <h1 id="t-title">Math Game Pro</h1>
+        <button onclick="setup('Time Attack')" id="t-time-attack">Time Attack</button>
+        <button onclick="setup('Endless')" id="t-endless">Endless</button>
     </div>
 
     <div id="setup" class="hidden">
-        <h2 id="mode-title">Setup</h2>
-        <label>Max Number Range:</label>
+        <h2 id="t-setup">Setup</h2>
+        <label id="t-range">Max Number Range:</label>
         <input type="number" id="max-digit" value="10">
         <div id="time-group">
-            <label>Time Limit (s):</label>
+            <label id="t-limit">Time Limit (s):</label>
             <input type="number" id="time-limit" value="30">
         </div>
+        <p id="t-ops">Operations:</p>
         <div class="checkbox-group">
             <label><input type="checkbox" id="op-add" checked> +</label>
             <label><input type="checkbox" id="op-sub" checked> -</label>
             <label><input type="checkbox" id="op-mul" checked> *</label>
             <label><input type="checkbox" id="op-div" checked> /</label>
         </div>
-        <button onclick="startGame()">Start Game</button>
-        <button onclick="showMenu()" style="background:#6c757d;">Back</button>
+        <button onclick="startGame()" id="t-start">Start Game</button>
+        <button onclick="showMenu()" style="background:#6c757d;" id="t-back">Back</button>
     </div>
 
     <div id="game" class="hidden">
@@ -49,83 +55,84 @@
         <div id="timer" style="color: red; font-weight: bold;"></div>
         <h2 id="question">?</h2>
         <input type="number" id="answer" placeholder="Answer" onkeydown="handleEnter(event)">
-        <button onclick="checkAnswer()">Submit</button>
-        <button id="btn-skip" onclick="nextQuestion()" style="background:#ffc107; color:black;">Skip</button>
-        <button id="btn-history" class="hidden" onclick="showHistory()" style="background:#17a2b8;">View History</button>
-        <button onclick="showMenu()" style="background:#dc3545;">Back to Menu</button>
+        <button onclick="checkAnswer()" id="t-submit">Submit</button>
+        <button id="btn-skip" onclick="nextQuestion()" style="background:#ffc107; color:black;" id="t-skip">Skip</button>
+        <button id="btn-history" class="hidden" onclick="showHistory()" style="background:#17a2b8;" id="t-history">View History</button>
+        <button onclick="showMenu()" style="background:#dc3545;" id="t-menu">Back to Menu</button>
     </div>
 </div>
 
 <div id="modal" class="hidden">
     <div class="modal-content">
-        <h3>Question History</h3>
+        <h3 id="t-hist-title">Question History</h3>
         <ul id="history-list"></ul>
-        <button onclick="closeModal()">Close</button>
+        <button onclick="closeModal()" id="t-close">Close</button>
     </div>
 </div>
 
 <script>
-    let mode, score, ans, timer, timeLimit, questionHistory = [];
-    
+    const dict = {
+        en: { title: "Math Game Pro", ta: "Time Attack", end: "Endless", setup: "Setup", range: "Max Number Range:", limit: "Time Limit (s):", ops: "Operations:", start: "Start Game", back: "Back", submit: "Submit", skip: "Skip", history: "View History", menu: "Back to Menu", histTitle: "Question History", close: "Close", score: "Score: ", time: "Time: ", over: "Game Over!", opsAlert: "Select an operation!", noHist: "No history yet!" },
+        th: { title: "เกมคณิตศาสตร์", ta: "โหมดจำกัดเวลา", end: "โหมดไม่จำกัด", setup: "ตั้งค่า", range: "ตัวเลขสูงสุด:", limit: "จำกัดเวลา (วินาที):", ops: "การดำเนินการ:", start: "เริ่มเกม", back: "ย้อนกลับ", submit: "ส่งคำตอบ", skip: "ข้าม", history: "ดูประวัติ", menu: "กลับสู่เมนูหลัก", histTitle: "ประวัติคำถาม", close: "ปิด", score: "คะแนน: ", time: "เวลา: ", over: "จบเกม!", opsAlert: "โปรดเลือกการดำเนินการอย่างน้อยหนึ่งรายการ!", noHist: "ยังไม่มีประวัติ!" }
+    };
+
+    let mode, score, ans, timer, timeLimit, questionHistory = [], lang = 'en';
+
+    function changeLanguage() {
+        lang = document.getElementById('lang-select').value;
+        document.getElementById('t-title').innerText = dict[lang].title;
+        document.getElementById('t-time-attack').innerText = dict[lang].ta;
+        document.getElementById('t-endless').innerText = dict[lang].end;
+        document.getElementById('t-setup').innerText = dict[lang].setup;
+        document.getElementById('t-range').innerText = dict[lang].range;
+        document.getElementById('t-limit').innerText = dict[lang].limit;
+        document.getElementById('t-ops').innerText = dict[lang].ops;
+        document.getElementById('t-start').innerText = dict[lang].start;
+        document.getElementById('t-back').innerText = dict[lang].back;
+        document.getElementById('t-submit').innerText = dict[lang].submit;
+        document.getElementById('btn-skip').innerText = dict[lang].skip;
+        document.getElementById('btn-history').innerText = dict[lang].history;
+        document.getElementById('t-menu').innerText = dict[lang].menu;
+        document.getElementById('t-hist-title').innerText = dict[lang].histTitle;
+        document.getElementById('t-close').innerText = dict[lang].close;
+    }
+
     function toggle(showIds, hideIds) {
         showIds.forEach(id => document.getElementById(id).classList.remove('hidden'));
         hideIds.forEach(id => document.getElementById(id).classList.add('hidden'));
     }
 
-    function handleEnter(event) {
-        if (event.key === 'Enter') checkAnswer();
-    }
-
-    function showMenu() {
-        clearInterval(timer);
-        toggle(['menu'], ['setup', 'game', 'modal']);
-        document.getElementById('btn-history').classList.add('hidden');
-    }
-
-    function setup(m) {
-        mode = m;
-        document.getElementById('time-group').style.display = (m === 'Time Attack') ? 'block' : 'none';
-        toggle(['setup'], ['menu', 'game']);
-    }
+    function handleEnter(event) { if (event.key === 'Enter') checkAnswer(); }
+    function showMenu() { clearInterval(timer); toggle(['menu'], ['setup', 'game', 'modal']); document.getElementById('btn-history').classList.add('hidden'); }
+    function setup(m) { mode = m; document.getElementById('time-group').style.display = (m === 'Time Attack') ? 'block' : 'none'; toggle(['setup'], ['menu', 'game']); }
 
     function startGame() {
         score = 0; questionHistory = [];
-        document.getElementById('score').innerText = "Score: 0";
+        document.getElementById('score').innerText = dict[lang].score + "0";
         toggle(['game'], ['menu', 'setup']);
-        
-        // Control button visibility based on mode
-        const skipBtn = document.getElementById('btn-skip');
-        const historyBtn = document.getElementById('btn-history');
-
+        const skipBtn = document.getElementById('btn-skip'), historyBtn = document.getElementById('btn-history');
         if (mode === 'Time Attack') {
-            skipBtn.classList.add('hidden');
-            historyBtn.classList.add('hidden');
+            skipBtn.classList.add('hidden'); historyBtn.classList.add('hidden');
             timeLimit = parseInt(document.getElementById('time-limit').value);
             timer = setInterval(() => {
                 timeLimit--;
-                document.getElementById('timer').innerText = "Time: " + timeLimit;
-                if (timeLimit <= 0) { clearInterval(timer); alert("Game Over!"); showMenu(); }
+                document.getElementById('timer').innerText = dict[lang].time + timeLimit;
+                if (timeLimit <= 0) { clearInterval(timer); alert(dict[lang].over); showMenu(); }
             }, 1000);
-        } else {
-            skipBtn.classList.remove('hidden');
-            historyBtn.classList.remove('hidden');
-            document.getElementById('timer').innerText = "";
-        }
+        } else { skipBtn.classList.remove('hidden'); historyBtn.classList.remove('hidden'); document.getElementById('timer').innerText = ""; }
         nextQuestion();
     }
 
     function nextQuestion() {
         const ops = ['+', '-', '*', '/'].filter(o => document.getElementById('op-' + (o==='+'?'add':o==='-'?'sub':o==='*'?'mul':'div')).checked);
-        if (ops.length === 0) return alert("Select an operation!");
+        if (ops.length === 0) return alert(dict[lang].opsAlert);
         const op = ops[Math.floor(Math.random() * ops.length)];
         const limit = parseInt(document.getElementById('max-digit').value) || 10;
         let n1 = Math.floor(Math.random() * limit) + 1, n2 = Math.floor(Math.random() * limit) + 1;
-        
         if (op === '/') { n1 = n1 * n2; ans = n1 / n2; }
         else if (op === '+') ans = n1 + n2;
         else if (op === '-') { if (n1 < n2) [n1, n2] = [n2, n1]; ans = n1 - n2; }
         else ans = n1 * n2;
-        
         document.getElementById('question').innerText = `${n1} ${op} ${n2}`;
         document.getElementById('answer').value = '';
         document.getElementById('answer').focus();
@@ -136,20 +143,18 @@
         if (!isNaN(userVal) && userVal === ans) {
             questionHistory.push({ q: document.getElementById('question').innerText, a: ans });
             score++;
-            document.getElementById('score').innerText = "Score: " + score;
+            document.getElementById('score').innerText = dict[lang].score + score;
             nextQuestion();
         }
     }
 
     function showHistory() {
         const list = document.getElementById('history-list');
-        list.innerHTML = questionHistory.map((h, i) => `<li>#${i+1}: ${h.q} = ${h.a}</li>`).join('');
+        list.innerHTML = questionHistory.length ? questionHistory.map((h, i) => `<li>#${i+1}: ${h.q} = ${h.a}</li>`).join('') : dict[lang].noHist;
         document.getElementById('modal').classList.remove('hidden');
     }
 
-    function closeModal() {
-        document.getElementById('modal').classList.add('hidden');
-    }
+    function closeModal() { document.getElementById('modal').classList.add('hidden'); }
 </script>
 </body>
 </html>
