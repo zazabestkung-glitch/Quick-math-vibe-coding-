@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Game Pro</title>
+    <style>
+        body { display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; font-family: 'Segoe UI', sans-serif; background: #e9ecef; }
+        #game-container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 450px; }
+        input, button { display: block; width: 100%; margin: 10px 0; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { background: #007bff; color: white; cursor: pointer; border: none; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        .hidden { display: none; }
+        h3 { color: #333; margin-top: 20px; border-bottom: 2px solid #007bff; padding-bottom: 5px; }
+        .checkbox-group { display: flex; justify-content: space-around; margin: 15px 0; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="menu">
+        <h1>Math Game Pro</h1>
+        <button onclick="setup('Time Attack')">Time Attack</button>
+        <button onclick="setup('Endless')">Endless</button>
+    </div>
+
+    <div id="setup" class="hidden">
+        <h2 id="mode-title">Setup</h2>
+        <h3>Digit Configuration</h3>
+        <label>Max Number Range:</label>
+        <input type="number" id="max-digit" value="10">
+
+        <h3>Game Settings</h3>
+        <div id="time-group">
+            <label>Time Limit (seconds):</label>
+            <input type="number" id="time-limit" value="30">
+        </div>
+        
+        <p>Operations:</p>
+        <div class="checkbox-group">
+            <label><input type="checkbox" id="op-add" checked> +</label>
+            <label><input type="checkbox" id="op-sub" checked> -</label>
+            <label><input type="checkbox" id="op-mul" checked> *</label>
+            <label><input type="checkbox" id="op-div" checked> /</label>
+        </div>
+
+        <button onclick="startGame()">Start Game</button>
+        <button onclick="showMenu()" style="background:#6c757d;">Back</button>
+    </div>
+
+    <div id="game" class="hidden">
+        <div id="score" style="font-size: 1.2rem; font-weight: bold;">Score: 0</div>
+        <div id="timer" style="color: red; font-weight: bold;"></div>
+        <h2 id="question" style="font-size: 2.5rem; margin: 20px 0;">?</h2>
+        <input type="number" id="answer" placeholder="Your Answer" onkeypress="handleEnter(event)">
+        <button onclick="checkAnswer()">Submit</button>
+        <button onclick="nextQuestion()" style="background:#ffc107; color:black;">Skip</button>
+        <button onclick="showMenu()" style="background:#dc3545;">Back to Menu</button>
+    </div>
+</div>
+
+<script>
+    let mode, score, ans, timer, timeLimit;
+    
+    function showMenu() { toggle(['menu'], ['setup', 'game']); clearInterval(timer); }
+    
+    function setup(m) { 
+        mode = m; 
+        document.getElementById('time-group').style.display = (m === 'Time Attack') ? 'block' : 'none';
+        toggle(['setup'], ['menu', 'game']); 
+        document.getElementById('mode-title').innerText = "Setup: " + m; 
+    }
+    
+    function toggle(show, hide) {
+        show.forEach(id => document.getElementById(id).classList.remove('hidden'));
+        hide.forEach(id => document.getElementById(id).classList.add('hidden'));
+    }
+
+    function startGame() {
+        score = 0;
+        document.getElementById('score').innerText = "Score: 0";
+        toggle(['game'], ['menu', 'setup']);
+        
+        if (mode === 'Time Attack') {
+            timeLimit = parseInt(document.getElementById('time-limit').value);
+            document.getElementById('timer').innerText = "Time: " + timeLimit;
+            timer = setInterval(() => {
+                timeLimit--;
+                document.getElementById('timer').innerText = "Time: " + timeLimit;
+                if (timeLimit <= 0) { clearInterval(timer); alert("Time's Up! Final Score: " + score); showMenu(); }
+            }, 1000);
+        } else {
+            document.getElementById('timer').innerText = "";
+        }
+        nextQuestion();
+    }
+
+    // NEW: Handle Enter key press
+    function handleEnter(e) {
+        if (e.key === 'Enter') {
+            checkAnswer();
+        }
+    }
+
+    function nextQuestion() {
+        const ops = [];
+        if (document.getElementById('op-add').checked) ops.push('+');
+        if (document.getElementById('op-sub').checked) ops.push('-');
+        if (document.getElementById('op-mul').checked) ops.push('*');
+        if (document.getElementById('op-div').checked) ops.push('/');
+        
+        if (ops.length === 0) return alert("Select at least one operation!");
+        
+        const op = ops[Math.floor(Math.random() * ops.length)];
+        const limit = parseInt(document.getElementById('max-digit').value) || 10;
+        let n1 = Math.floor(Math.random() * limit) + 1;
+        let n2 = Math.floor(Math.random() * limit) + 1;
+        
+        if (op === '/') { n1 = n1 * n2; ans = n1 / n2; }
+        else if (op === '+') ans = n1 + n2;
+        else if (op === '-') { if (n1 < n2) [n1, n2] = [n2, n1]; ans = n1 - n2; }
+        else ans = n1 * n2;
+        
+        document.getElementById('question').innerText = `${n1} ${op} ${n2}`;
+        document.getElementById('answer').value = '';
+        document.getElementById('answer').focus();
+    }
+
+    function checkAnswer() {
+        const userVal = parseInt(document.getElementById('answer').value);
+        if (!isNaN(userVal) && userVal === ans) {
+            score++;
+            document.getElementById('score').innerText = "Score: " + score;
+            nextQuestion();
+        }
+    }
+</script>
+</body>
+</html>
